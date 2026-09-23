@@ -1,0 +1,21 @@
+{{- if .Values.prober.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ .Values.prober.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.prober.name }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.prober.name }}
+  endpoints:
+    - port: metrics
+      interval: {{ .Values.prober.monitoring.interval }}
+      path: /metrics
+      relabelings:
+        - sourceLabels: []
+          targetLabel: instance
+          replacement: {{ .Values.prober.name }}-service.monitoring.svc.cluster.local:{{ .Values.prober.metricsPort }}
+{{- end }}

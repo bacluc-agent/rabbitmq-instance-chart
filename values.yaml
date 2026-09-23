@@ -1,0 +1,45 @@
+namespace: rabbitmq
+rabbitmq:
+  enabled: true
+  name: rabbitmq
+  namespaceLabels: {}
+  image: docker.io/bitnamilegacy/rabbitmq:3.11.26-debian-11-r0
+  affinity: {}
+  plugins: []
+  additionalConfig: ''
+  persistence:
+    storage: 3Gi
+  resources:
+    limits: {memory: 3Gi, cpu: '1'}
+    requests: {memory: 3Gi, cpu: '1'}
+  replicas: 1
+  tls:
+    enabled: false
+    secretName: rabbitmq-certs
+    disableNonTLSListeners: true
+    dnsNames: {amqps: amqps.rabbitmq.com, management: management.rabbitmq.com}
+  rbac:
+    enabled: false
+    groups: []
+  service: {}
+  custom_lb_service:
+    enabled: false
+    loadBalancerClass: ""
+  ciliumNetworkPolicy:
+    enabled: false
+prober:
+  enabled: false
+  name: rabbitmq-prober
+  image: ghcr.io/projectsyn/component-rabbitmq-operator/prober:latest
+  secretName: rabbitmq-default-user
+  probeInterval: '10'
+  metricsPort: 8080
+  useTLS: 'true'
+  alerts:
+    enabled: false
+  resources:
+    requests: {memory: '64Mi', cpu: '50m'}
+    limits: {memory: '128Mi', cpu: '100m'}
+  monitoring:
+    interval: '10s'
+    recordingRulesInterval: '10s'

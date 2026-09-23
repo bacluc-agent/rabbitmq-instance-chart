@@ -1,0 +1,31 @@
+{{- if and .Values.rabbitmq.enabled .Values.rabbitmq.tls.enabled }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: amqps
+  namespace: {{ .Values.namespace }}
+spec:
+  host: {{ .Values.rabbitmq.tls.dnsNames.amqps }}
+  to:
+    kind: Service
+    name: {{ .Values.rabbitmq.name }}
+  port:
+    targetPort: amqps
+  tls:
+    termination: passthrough
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: management
+  namespace: {{ .Values.namespace }}
+spec:
+  host: {{ .Values.rabbitmq.tls.dnsNames.management }}
+  to:
+    kind: Service
+    name: {{ .Values.rabbitmq.name }}
+  port:
+    targetPort: management-tls
+  tls:
+    termination: passthrough
+{{- end }}

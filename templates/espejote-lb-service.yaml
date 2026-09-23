@@ -1,0 +1,84 @@
+{{- if and .Values.rabbitmq.enabled .Values.rabbitmq.custom_lb_service.enabled }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rabbitmq-lb-service-manager
+  namespace: {{ .Values.namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: rabbitmq-lb-service-manager
+  namespace: {{ .Values.namespace }}
+rules:
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["*"]
+  - apiGroups: ["espejote.io"]
+    resources: ["jsonnetlibraries"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: rabbitmq-lb-service-manager
+  namespace: {{ .Values.namespace }}
+roleRef:
+  kind: Role
+  name: rabbitmq-lb-service-manager
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - kind: ServiceAccount
+    name: rabbitmq-lb-service-manager
+    namespace: {{ .Values.namespace }}
+---
+apiVersion: espejote.io/v1alpha1
+kind: JsonnetLibrary
+metadata:
+  name: rabbitmq-lb-service
+  namespace: {{ .Values.namespace }}
+spec:
+  data:
+    config.json: {{ toJson .Values.rabbitmq.custom_lb_service }}
+---
+apiVersion: espejote.io/v1alpha1
+kind: ManagedResource
+metadata:
+  name: rabbitmq-lb-service
+  namespace: {{ .Values.namespace }}
+  annotations:
+    syn.tools/description: |
+      This ManagedResource watches the Service created by the
+      rabbitmq-operator for the RabbitmqCluster resource that's created by
+      the Commodore component.
+
+      The ManagedResource creates a copy of the RabbitmqCluster's primary
+      service with `spec.type=LoadBalancer` and a user-configurable
+      `spec.loadBalancerClass`. The values of `metadata.annotations`,
+      `spec.ports` and `spec.selector` are copied from the
+      operator-managed Service and updated whenever the operator makes any
+      changes.
+spec:
+  applyOptions:
+    force: true
+  context:
+    - name: services
+      resource:
+        apiVersion: v1
+        kind: Service
+        name: {{ .Values.rabbitmq.name }}
+        namespace: {{ .Values.namespace }}
+  triggers:
+    - name: service
+      watchContextResource:
+        name: services
+    - name: jsonnetlib
+      watchResource:
+        apiVersion: espejote.io/v1alpha1
+        kind: JsonnetLibrary
+        name: rabbitmq-lb-service
+        namespace: {{ .Values.namespace }}
+  serviceAccountRef:
+    name: rabbitmq-lb-service-manager
+  template: {{ .Files.Get "files/rabbitmq-lb-service.jsonnet" | quote }}
+{{- end }}
