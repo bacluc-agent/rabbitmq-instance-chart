@@ -21,10 +21,21 @@ metadata:
   name: read-access-binding
   namespace: {{ .Values.namespace }}
 subjects:
+  {{- $groups := list }}
   {{- range .Values.rabbitmq.rbac.groups }}
+  {{- $groups = append $groups . }}
+  {{- end }}
+  {{- if .Values.rabbitmq.rbac.group }}
+  {{- $groups = append $groups .Values.rabbitmq.rbac.group }}
+  {{- end }}
+  {{- $seen := dict }}
+  {{- range $groups }}
+  {{- if not (hasKey $seen .) }}
+  {{- $_ := set $seen . true }}
   - kind: Group
     name: {{ . }}
     apiGroup: rbac.authorization.k8s.io
+  {{- end }}
   {{- end }}
 roleRef:
   kind: Role
