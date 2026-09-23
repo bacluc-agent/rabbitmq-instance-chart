@@ -27,6 +27,11 @@ jobs:
           helm pull oci://ghcr.io/bacluc-agent/rabbitmq-crd-chart/rabbitmq-crd --version 0.0.1 --untar --destination /tmp
           helm install crd /tmp/rabbitmq-crd --wait --timeout 5m --create-namespace --namespace rabbitmq-system
 
+      - name: Install prometheus-operator CRDs
+        run: |
+          kubectl apply -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.75.2/example/prometheus-operator-crd/monitoring.coreos.com_servicemonitors.yaml
+          kubectl apply -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.75.2/example/prometheus-operator-crd/monitoring.coreos.com_prometheusrules.yaml
+
       - name: Install chart
         run: helm install test . --timeout 10m --create-namespace --namespace rabbitmq-system --set prober.enabled=true
 
