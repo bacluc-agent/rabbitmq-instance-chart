@@ -1,0 +1,18 @@
+{{- if .Values.prober.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.prober.name }}-service
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.prober.name }}
+spec:
+  type: ClusterIP
+  selector:
+    app: {{ .Values.prober.name }}
+  ports:
+    - name: metrics
+      port: {{ .Values.prober.metricsPort }}
+      targetPort: {{ .Values.prober.metricsPort }}
+      protocol: TCP
+{{- end }}

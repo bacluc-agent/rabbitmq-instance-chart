@@ -1,0 +1,38 @@
+{{- if .Values.rabbitmq.enabled }}
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: {{ .Values.rabbitmq.name }}
+  namespace: {{ .Values.namespace }}
+spec:
+  rabbitmq:
+    additionalPlugins: {{ toYaml .Values.rabbitmq.plugins | nindent 6 }}
+    additionalConfig: |
+      {{- if not (contains "vm_memory_high_watermark.absolute" .Values.rabbitmq.additionalConfig) }}
+      vm_memory_high_watermark.absolute = {{ .Values.rabbitmq.resources.limits.memory }}
+      {{- end }}
+      {{- with .Values.rabbitmq.additionalConfig }}
+      {{ . | nindent 6 }}
+      {{- end }}
+  image: {{ .Values.rabbitmq.image }}
+  persistence:
+    storage: {{ .Values.rabbitmq.persistence.storage }}
+  replicas: {{ .Values.rabbitmq.replicas }}
+  resources: {{ toYaml .Values.rabbitmq.resources | nindent 4 }}
+  service: {{ toYaml .Values.rabbitmq.service | nindent 4 }}
+  override:
+    statefulSet:
+      spec:
+        template:
+          spec:
+            containers: []
+            securityContext: {}
+            {{- with .Values.rabbitmq.affinity }}
+            affinity: {{ toYaml . | nindent 14 }}
+            {{- end }}
+  {{- if .Values.rabbitmq.tls.enabled }}
+  tls:
+    secretName: {{ .Values.rabbitmq.tls.secretName }}
+    disableNonTLSListeners: {{ .Values.rabbitmq.tls.disableNonTLSListeners }}
+  {{- end }}
+{{- end }}

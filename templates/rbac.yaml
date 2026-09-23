@@ -1,0 +1,33 @@
+{{- if and .Values.rabbitmq.enabled .Values.rabbitmq.rbac.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: read-access
+  namespace: {{ .Values.namespace }}
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "secrets", "configmaps", "services"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["route.openshift.io"]
+    resources: ["routes"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-access-binding
+  namespace: {{ .Values.namespace }}
+subjects:
+  {{- range .Values.rabbitmq.rbac.groups }}
+  - kind: Group
+    name: {{ . }}
+    apiGroup: rbac.authorization.k8s.io
+  {{- end }}
+roleRef:
+  kind: Role
+  name: read-access
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

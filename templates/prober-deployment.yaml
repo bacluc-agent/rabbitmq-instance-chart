@@ -1,0 +1,68 @@
+{{- if .Values.prober.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.prober.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.prober.name }}
+spec:
+  replicas: 1
+  minReadySeconds: 30
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  selector:
+    matchLabels:
+      app: {{ .Values.prober.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.prober.name }}
+    spec:
+      containers:
+        - name: prober
+          image: {{ .Values.prober.image }}
+          env:
+            - name: RABBITMQ_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.prober.secretName }}
+                  key: host
+            - name: RABBITMQ_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.prober.secretName }}
+                  key: port
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.prober.secretName }}
+                  key: username
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.prober.secretName }}
+                  key: password
+            - name: PROBE_INTERVAL
+              value: {{ .Values.prober.probeInterval | quote }}
+            - name: METRICS_PORT
+              value: {{ .Values.prober.metricsPort | quote }}
+            - name: RABBITMQ_USE_TLS
+              value: {{ .Values.prober.useTLS | quote }}
+          ports:
+            - containerPort: {{ .Values.prober.metricsPort }}
+              name: metrics
+          resources: {{ toYaml .Values.prober.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.prober.metricsPort }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.prober.metricsPort }}
+      restartPolicy: Always
+{{- end }}
