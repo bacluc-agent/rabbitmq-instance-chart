@@ -21,6 +21,7 @@ rabbitmq:
   rbac:
     enabled: false
     groups: []
+    group: ''
   service: {}
   custom_lb_service:
     enabled: false
