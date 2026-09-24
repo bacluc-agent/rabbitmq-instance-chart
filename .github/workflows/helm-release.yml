@@ -46,9 +46,8 @@ jobs:
         run: |
           IMAGE="ghcr.io/${{ github.repository }}/prober"
           TAGS="$IMAGE:$VERSION"
-          git fetch --unshallow origin
           git fetch origin +refs/heads/main:refs/remotes/origin/main
-          if git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+          if [[ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]]; then
             TAGS="$TAGS,$IMAGE:latest"
           fi
           echo "tags=$TAGS" >> "$GITHUB_OUTPUT"
