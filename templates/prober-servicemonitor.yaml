@@ -3,7 +3,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: {{ .Values.prober.name }}
-  namespace: {{ .Values.namespace }}
+  namespace: {{ .Release.namespace }}
   labels:
     app: {{ .Values.prober.name }}
 spec:
