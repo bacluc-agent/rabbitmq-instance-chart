@@ -3,13 +3,13 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: rabbitmq-lb-service-manager
-  namespace: {{ .Release.namespace }}
+  namespace: {{ .Release.Namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: rabbitmq-lb-service-manager
-  namespace: {{ .Release.namespace }}
+  namespace: {{ .Release.Namespace }}
 rules:
   - apiGroups: [""]
     resources: ["services"]
@@ -22,7 +22,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: rabbitmq-lb-service-manager
-  namespace: {{ .Release.namespace }}
+  namespace: {{ .Release.Namespace }}
 roleRef:
   kind: Role
   name: rabbitmq-lb-service-manager
@@ -30,13 +30,13 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: rabbitmq-lb-service-manager
-    namespace: {{ .Release.namespace }}
+    namespace: {{ .Release.Namespace }}
 ---
 apiVersion: espejote.io/v1alpha1
 kind: JsonnetLibrary
 metadata:
   name: rabbitmq-lb-service
-  namespace: {{ .Release.namespace }}
+  namespace: {{ .Release.Namespace }}
 spec:
   data:
     config.json: {{ toJson .Values.rabbitmq.custom_lb_service }}
@@ -45,7 +45,7 @@ apiVersion: espejote.io/v1alpha1
 kind: ManagedResource
 metadata:
   name: rabbitmq-lb-service
-  namespace: {{ .Release.namespace }}
+  namespace: {{ .Release.Namespace }}
   annotations:
     syn.tools/description: |
       This ManagedResource watches the Service created by the
@@ -67,7 +67,7 @@ spec:
         apiVersion: v1
         kind: Service
         name: {{ .Values.rabbitmq.name }}
-        namespace: {{ .Release.namespace }}
+        namespace: {{ .Release.Namespace }}
   triggers:
     - name: service
       watchContextResource:
@@ -77,7 +77,7 @@ spec:
         apiVersion: espejote.io/v1alpha1
         kind: JsonnetLibrary
         name: rabbitmq-lb-service
-        namespace: {{ .Release.namespace }}
+        namespace: {{ .Release.Namespace }}
   serviceAccountRef:
     name: rabbitmq-lb-service-manager
   template: {{ .Files.Get "files/rabbitmq-lb-service.jsonnet" | quote }}

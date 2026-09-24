@@ -3,7 +3,7 @@ apiVersion: rabbitmq.com/v1beta1
 kind: RabbitmqCluster
 metadata:
   name: {{ .Values.rabbitmq.name }}
-  namespace: {{ .Release.namespace }}
+  namespace: {{ .Release.Namespace }}
 spec:
   rabbitmq:
     additionalPlugins: {{ toYaml .Values.rabbitmq.plugins | nindent 6 }}
