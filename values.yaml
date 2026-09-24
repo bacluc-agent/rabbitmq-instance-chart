@@ -31,7 +31,7 @@ rabbitmq:
 prober:
   enabled: false
   name: rabbitmq-prober
-  image: ghcr.io/projectsyn/component-rabbitmq-operator/prober:latest
+  image: ghcr.io/bacluc-agent/rabbitmq-instance-chart/prober:latest
   secretName: rabbitmq-default-user
   probeInterval: '10'
   metricsPort: 8080

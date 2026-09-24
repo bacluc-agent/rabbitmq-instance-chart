@@ -35,5 +35,13 @@ jobs:
         run: scripts/helm-docker.sh package . --version "$VERSION"
       - name: Login to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | scripts/helm-docker.sh registry login ghcr.io --username "${{ github.actor }}" --password-stdin
+      - name: Login to GHCR (docker)
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.actor }}" --password-stdin
+      - name: Build and push prober image
+        run: |
+          IMAGE="ghcr.io/${{ github.repository }}/prober"
+          docker build -f docker/Dockerfile -t "$IMAGE:$VERSION" -t "$IMAGE:latest" .
+          docker push "$IMAGE:$VERSION"
+          docker push "$IMAGE:latest"
       - name: Push Helm chart
         run: scripts/helm-docker.sh push ./*.tgz oci://ghcr.io/${{ github.repository }}
