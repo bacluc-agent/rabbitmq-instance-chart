@@ -33,7 +33,7 @@ jobs:
           kubectl apply -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.75.2/example/prometheus-operator-crd/monitoring.coreos.com_prometheusrules.yaml
 
       - name: Install chart
-        run: helm install test . --timeout 10m --create-namespace --namespace rabbitmq-system --set prober.enabled=true
+        run: helm install test . --timeout 10m --create-namespace --namespace rabbitmq --set prober.enabled=true
 
       - name: Assert RabbitmqCluster and prober
         run: |
@@ -41,7 +41,7 @@ jobs:
           kubectl get deployment rabbitmq-prober -n rabbitmq
 
       - name: Uninstall chart
-        run: helm uninstall test -n rabbitmq-system --wait
+        run: helm uninstall test -n rabbitmq --wait
 
       - name: Assert CRDs retained
         run: |
