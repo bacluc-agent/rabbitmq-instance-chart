@@ -3,7 +3,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
   name: {{ .Values.prober.name }}-recording-rules
-  namespace: {{ .Release.namespace }}
+  namespace: {{ .Release.Namespace }}
 spec:
   groups:
     - name: rabbitmq.sla.recording

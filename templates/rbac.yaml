@@ -3,7 +3,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: read-access
-  namespace: {{ .Release.namespace }}
+  namespace: {{ .Release.Namespace }}
 rules:
   - apiGroups: [""]
     resources: ["pods", "secrets", "configmaps", "services"]
@@ -19,7 +19,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: read-access-binding
-  namespace: {{ .Release.namespace }}
+  namespace: {{ .Release.Namespace }}
 subjects:
   {{- $groups := list }}
   {{- range .Values.rabbitmq.rbac.groups }}

@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Values.prober.name }}
-  namespace: {{ .Release.namespace }}
+  namespace: {{ .Release.Namespace }}
   labels:
     app: {{ .Values.prober.name }}
 spec:
