@@ -60,3 +60,14 @@ jobs:
           tags: ${{ steps.prober-tags.outputs.tags }}
       - name: Push Helm chart
         run: scripts/helm-docker.sh push ./*.tgz oci://ghcr.io/${{ github.repository }}
+      - name: Tag latest
+        if: ${{ github.ref_type == 'tag' }}
+        run: |
+          git fetch origin +refs/heads/main:refs/remotes/origin/main
+          if [[ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]]; then
+            CHART_NAME="$(grep '^name:' Chart.yaml | awk '{print $2}')"
+            docker run --rm --entrypoint sh ghcr.io/oras-project/oras:v1.2.3 -c \
+              'oras login ghcr.io -u "$1" -p "$2" && oras tag "$3" latest' \
+              sh "${{ github.actor }}" "${{ secrets.GITHUB_TOKEN }}" \
+              "ghcr.io/${{ github.repository }}/$CHART_NAME:$VERSION"
+          fi
