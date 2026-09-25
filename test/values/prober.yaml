@@ -1,0 +1,3 @@
+prober:
+  enabled: true
+  useTLS: false
