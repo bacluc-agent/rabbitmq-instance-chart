@@ -40,7 +40,7 @@ metadata:
 spec:
   data:
     config.json: |
-      {{ toPrettyJson .Values.rabbitmq.custom_lb_service | nindent 4 }}
+      {{- toPrettyJson .Values.rabbitmq.custom_lb_service | nindent 6 }}
 ---
 apiVersion: espejote.io/v1alpha1
 kind: ManagedResource
