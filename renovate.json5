@@ -1,0 +1,48 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/./"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>[^\\s]+) depName=(?<depName>[^\\s]+)\\n\\s*[A-Z_]+[=:]\\s*\"?(?<currentValue>[0-9][\\w.-]*)\"?"
+      ],
+    }
+  ],
+  "packageRules": [
+    {
+      "matchUpdateTypes": "patch",
+      "labels": [
+        "renovate",
+        "dependency",
+        "bump:patch",
+      ],
+    },
+    {
+      "matchUpdateTypes": "minor",
+      "labels": [
+        "renovate",
+        "dependency",
+        "bump:minor",
+      ],
+    },
+    {
+      "matchUpdateTypes": "major",
+      "labels": [
+        "renovate",
+        "dependency",
+        "bump:major",
+      ],
+    },
+    {
+      "matchFileNames": [
+        "/\\.github/.*/",
+        "/\\.github/.*/",
+      ],
+      "labels": [
+        "renovate",
+        "dependency",
+      ],
+    },
+  ],
+}

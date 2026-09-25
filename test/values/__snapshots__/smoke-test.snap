@@ -71,7 +71,7 @@ spec:
         - name: METRICS_PORT
           value: "8080"
         - name: RABBITMQ_USE_TLS
-          value: "false"
+          value: "true"
         ports:
         - containerPort: 8080
           name: metrics
@@ -91,28 +91,6 @@ spec:
             path: /
             port: 8080
       restartPolicy: Always
----
-# Source: rabbitmq-instance/templates/prober-recording-rules.yaml
-apiVersion: monitoring.coreos.com/v1
-kind: PrometheusRule
-metadata:
-  name: rabbitmq-prober-recording-rules
-  namespace: rabbitmq
-spec:
-  groups:
-  - name: rabbitmq.sla.recording
-    interval: 10s
-    rules:
-    - record: rabbitmq:availability:current
-      expr: max(rabbitmq_functional_availability{job="rabbitmq-prober-service"})
-    - record: rabbitmq:availability:rate5m
-      expr: avg_over_time(rabbitmq:availability:current[5m])
-    - record: rabbitmq:availability:rate1h
-      expr: avg_over_time(rabbitmq:availability:current[1h])
-    - record: rabbitmq:availability:rate24h
-      expr: avg_over_time(rabbitmq:availability:current[24h])
-    - record: rabbitmq:sla_percentage
-      expr: rabbitmq:availability:rate24h * 100
 ---
 # Source: rabbitmq-instance/templates/rabbitmq-cluster.yaml
 apiVersion: rabbitmq.com/v1beta1
@@ -153,24 +131,3 @@ spec:
                       app.kubernetes.io/component: rabbitmq
                       app.kubernetes.io/name: rabbitmq
                   topologyKey: kubernetes.io/hostname
----
-# Source: rabbitmq-instance/templates/prober-servicemonitor.yaml
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  name: rabbitmq-prober
-  namespace: rabbitmq
-  labels:
-    app: rabbitmq-prober
-spec:
-  selector:
-    matchLabels:
-      app: rabbitmq-prober
-  endpoints:
-  - port: metrics
-    interval: 10s
-    path: /metrics
-    relabelings:
-    - sourceLabels: []
-      targetLabel: instance
-      replacement: 'rabbitmq-prober-service.monitoring.svc.cluster.local:8080'

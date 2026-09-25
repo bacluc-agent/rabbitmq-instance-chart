@@ -1,4 +1,4 @@
-{{- if .Values.prober.enabled }}
+{{- if and .Values.prober.enabled .Values.monitoring.enabled }}
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
@@ -17,5 +17,5 @@ spec:
       relabelings:
         - sourceLabels: []
           targetLabel: instance
-          replacement: {{ .Values.prober.name }}-service.monitoring.svc.cluster.local:{{ .Values.prober.metricsPort }}
+          replacement: '{{ .Values.prober.name }}-service.monitoring.svc.cluster.local:{{ .Values.prober.metricsPort }}'
 {{- end }}

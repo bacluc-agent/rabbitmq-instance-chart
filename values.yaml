@@ -1,23 +1,31 @@
 rabbitmq:
   enabled: true
   name: rabbitmq
-  namespaceLabels: {}
-  image: docker.io/bitnamilegacy/rabbitmq:3.11.26-debian-11-r0
-  affinity: {}
+  image:
+    registry: docker.io
+    image: library/rabbitmq
+    version:
   plugins:
     - rabbitmq_prometheus
-  additionalConfig: ''
+  additionalConfig: |
+
   persistence:
     storage: 3Gi
   resources:
-    limits: {memory: 3Gi, cpu: '1'}
-    requests: {memory: 3Gi, cpu: '1'}
+    limits:
+      memory: 3Gi
+      cpu: '1'
+    requests:
+      memory: 3Gi
+      cpu: '1'
   replicas: 1
   tls:
     enabled: false
     secretName: rabbitmq-certs
     disableNonTLSListeners: true
-    dnsNames: {amqps: amqps.rabbitmq.com, management: management.rabbitmq.com}
+    dnsNames:
+      # amqps: amqps.rabbitmq.com
+      # management: management.rabbitmq.com
   rbac:
     enabled: false
     groups: []
@@ -31,8 +39,10 @@ rabbitmq:
 prober:
   enabled: false
   name: rabbitmq-prober
-  image: ghcr.io/bacluc-agent/rabbitmq-instance-chart/prober:latest
-  secretName: rabbitmq-default-user
+  image:
+    registry: ghcr.io
+    image: bacluc-agent/rabbitmq-instance-chart/prober
+    tag:
   probeInterval: '10'
   metricsPort: 8080
   useTLS: 'true'
@@ -45,3 +55,5 @@ prober:
   monitoring:
     interval: '10s'
     recordingRulesInterval: '10s'
+monitoring:
+  enabled: true

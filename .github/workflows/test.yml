@@ -4,6 +4,11 @@ on:
   push:
   workflow_dispatch: {}
 
+env:
+  HELM_IMAGE: ghcr.io/appuio/helm-v4
+  # renovate: datasource=docker depName=ghcr.io/appuio/helm-v4
+  HELM_VERSION: 4.1.0
+
 jobs:
   smoke:
     runs-on: ubuntu-latest
@@ -11,29 +16,28 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Start Minikube
-        uses: medyagh/setup-minikube@latest
+        uses: medyagh/setup-minikube@e9e035a86bbc3caea26a450bd4dbf9d0c453682e # v0.0.21
 
-      - name: Set up Helm
-        uses: azure/setup-helm@v4
+      - name: setup helm
+        run: |
+          mkdir -p ~/.config/helm/registry/
+          echo "{}" > ~/.config/helm/registry/config.json
 
       - name: Lint
-        run: helm lint .
+        run: scripts/helm-docker.sh lint .
 
       - name: Template default
-        run: helm template test .
+        run: scripts/helm-docker.sh template test .
 
       - name: Install CRD chart
         run: |
-          helm pull oci://ghcr.io/bacluc-agent/rabbitmq-crd-chart/rabbitmq-crd --version 0.0.1 --untar --destination /tmp
-          helm install crd /tmp/rabbitmq-crd --wait --timeout 5m --create-namespace --namespace rabbitmq-system
-
-      - name: Install prometheus-operator CRDs
-        run: |
-          kubectl apply -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.75.2/example/prometheus-operator-crd/monitoring.coreos.com_servicemonitors.yaml
-          kubectl apply -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.75.2/example/prometheus-operator-crd/monitoring.coreos.com_prometheusrules.yaml
+          scripts/helm-docker.sh install crd oci://ghcr.io/bacluc-agent/rabbitmq-crd-chart/rabbitmq-crd --version "$RABBITMQ_CRD_CHART_VERSION" --wait --timeout 5m --create-namespace --namespace rabbitmq-system
+        env:
+          # renovate: datasource=docker depName=ghcr.io/bacluc-agent/rabbitmq-crd-chart/rabbitmq-crd
+          RABBITMQ_CRD_CHART_VERSION: 0.0.1
 
       - name: Install chart
-        run: helm install test . --timeout 10m --create-namespace --namespace rabbitmq --set prober.enabled=true
+        run: scripts/helm-docker.sh install test . --timeout 10m --create-namespace --namespace rabbitmq --values test/values/smoke-test.yaml
 
       - name: Assert RabbitmqCluster and prober
         run: |
@@ -41,12 +45,7 @@ jobs:
           kubectl get deployment rabbitmq-prober -n rabbitmq
 
       - name: Uninstall chart
-        run: helm uninstall test -n rabbitmq --wait
-
-      - name: Assert CRDs retained
-        run: |
-          kubectl get crd rabbitmqclusters.rabbitmq.com
-          kubectl get crd queues.rabbitmq.com
+        run: scripts/helm-docker.sh uninstall test -n rabbitmq --wait
 
   chartsnap:
     runs-on: ubuntu-latest

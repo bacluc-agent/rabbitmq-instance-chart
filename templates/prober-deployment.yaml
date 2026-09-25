@@ -1,4 +1,5 @@
 {{- if .Values.prober.enabled }}
+{{- $connectionSecret := printf "%s-default-user" .Values.rabbitmq.name }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -24,27 +25,27 @@ spec:
     spec:
       containers:
         - name: prober
-          image: {{ .Values.prober.image }}
+          image: "{{ .Values.prober.image.registry }}/{{ .Values.prober.image.image }}:{{ .Values.prober.image.tag | default .Chart.Version }}"
           env:
             - name: RABBITMQ_HOST
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.prober.secretName }}
+                  name: {{ $connectionSecret }}
                   key: host
             - name: RABBITMQ_PORT
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.prober.secretName }}
+                  name: {{ $connectionSecret }}
                   key: port
             - name: RABBITMQ_USER
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.prober.secretName }}
+                  name: {{ $connectionSecret }}
                   key: username
             - name: RABBITMQ_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.prober.secretName }}
+                  name: {{ $connectionSecret }}
                   key: password
             - name: PROBE_INTERVAL
               value: {{ .Values.prober.probeInterval | quote }}

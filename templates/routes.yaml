@@ -2,7 +2,7 @@
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
-  name: amqps
+  name: {{ .Release.Name }}-amqps
   namespace: {{ .Release.Namespace }}
 spec:
   host: {{ .Values.rabbitmq.tls.dnsNames.amqps }}
@@ -17,7 +17,7 @@ spec:
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
-  name: management
+  name: {{ .Release.Name }}-management
   namespace: {{ .Release.Namespace }}
 spec:
   host: {{ .Values.rabbitmq.tls.dnsNames.management }}
