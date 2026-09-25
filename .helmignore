@@ -3,3 +3,4 @@
 *.tgz
 docker/
 monitoring/
+test/

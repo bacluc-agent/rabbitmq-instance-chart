@@ -1,0 +1,14 @@
+rabbitmq:
+  tls:
+    enabled: true
+  rbac:
+    enabled: true
+    groups:
+      - rabbitmq-admins
+  ciliumNetworkPolicy:
+    enabled: true
+prober:
+  enabled: true
+  alerts:
+    enabled: true
+    syn_team: messaging
