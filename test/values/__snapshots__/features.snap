@@ -1,0 +1,288 @@
+# chartsnap: snapshot_version=v3
+---
+# Source: rabbitmq-instance/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: read-access
+  namespace: rabbitmq
+rules:
+- apiGroups: [""]
+  resources: ["pods", "secrets", "configmaps", "services"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "statefulsets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["route.openshift.io"]
+  resources: ["routes"]
+  verbs: ["get", "list", "watch"]
+---
+# Source: rabbitmq-instance/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-access-binding
+  namespace: rabbitmq
+subjects:
+- kind: Group
+  name: rabbitmq-admins
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: read-access
+  apiGroup: rbac.authorization.k8s.io
+---
+# Source: rabbitmq-instance/templates/prober-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-prober-service
+  namespace: rabbitmq
+  labels:
+    app: rabbitmq-prober
+spec:
+  type: ClusterIP
+  selector:
+    app: rabbitmq-prober
+  ports:
+  - name: metrics
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+---
+# Source: rabbitmq-instance/templates/prober-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq-prober
+  namespace: rabbitmq
+  labels:
+    app: rabbitmq-prober
+spec:
+  replicas: 1
+  minReadySeconds: 30
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  selector:
+    matchLabels:
+      app: rabbitmq-prober
+  template:
+    metadata:
+      labels:
+        app: rabbitmq-prober
+    spec:
+      containers:
+      - name: prober
+        image: ghcr.io/bacluc-agent/rabbitmq-instance-chart/prober:latest
+        env:
+        - name: RABBITMQ_HOST
+          valueFrom:
+            secretKeyRef:
+              name: rabbitmq-default-user
+              key: host
+        - name: RABBITMQ_PORT
+          valueFrom:
+            secretKeyRef:
+              name: rabbitmq-default-user
+              key: port
+        - name: RABBITMQ_USER
+          valueFrom:
+            secretKeyRef:
+              name: rabbitmq-default-user
+              key: username
+        - name: RABBITMQ_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: rabbitmq-default-user
+              key: password
+        - name: PROBE_INTERVAL
+          value: "10"
+        - name: METRICS_PORT
+          value: "8080"
+        - name: RABBITMQ_USE_TLS
+          value: "true"
+        ports:
+        - containerPort: 8080
+          name: metrics
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+      restartPolicy: Always
+---
+# Source: rabbitmq-instance/templates/cilium-network-policy.yaml
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: rabbitmq-allow-from-world
+  namespace: rabbitmq
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: rabbitmq
+  ingress:
+  - fromEntities:
+    - world
+    toPorts:
+    - ports:
+      - port: "5671"
+        protocol: TCP
+      - port: "5672"
+        protocol: TCP
+---
+# Source: rabbitmq-instance/templates/prober-alert-rules.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: rabbitmq-prober-alerts
+  namespace: rabbitmq
+spec:
+  groups:
+  - name: rabbitmq.alerts
+    rules:
+    - alert: RabbitMQDown
+      expr: max by (job, cluster_id, namespace) (rabbitmq_functional_availability) == 0
+      for: 2m
+      labels:
+        severity: warning
+        syn_team: "messaging"
+        syn: "true"
+        syn_component: rabbitmq-instance-test
+      annotations:
+        summary: RabbitMQ is down
+        description: RabbitMQ in namespace {{ $labels.namespace }} has been down for more than 1 minute
+    - alert: RabbitMQProbeFailures
+      expr: increase(rabbitmq_probe_failures_total[5m]) > 3
+      for: 0m
+      labels:
+        severity: warning
+        syn_team: "messaging"
+        syn: "true"
+        syn_component: rabbitmq-instance-test
+      annotations:
+        summary: Multiple RabbitMQ probe failures
+        description: RabbitMQ prober in namespace {{ $labels.namespace }} has failed {{ $value }} times in the last 5 minutes
+---
+# Source: rabbitmq-instance/templates/prober-recording-rules.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: rabbitmq-prober-recording-rules
+  namespace: rabbitmq
+spec:
+  groups:
+  - name: rabbitmq.sla.recording
+    interval: 10s
+    rules:
+    - record: rabbitmq:availability:current
+      expr: max(rabbitmq_functional_availability{job="rabbitmq-prober-service"})
+    - record: rabbitmq:availability:rate5m
+      expr: avg_over_time(rabbitmq:availability:current[5m])
+    - record: rabbitmq:availability:rate1h
+      expr: avg_over_time(rabbitmq:availability:current[1h])
+    - record: rabbitmq:availability:rate24h
+      expr: avg_over_time(rabbitmq:availability:current[24h])
+    - record: rabbitmq:sla_percentage
+      expr: rabbitmq:availability:rate24h * 100
+---
+# Source: rabbitmq-instance/templates/rabbitmq-cluster.yaml
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: rabbitmq
+  namespace: rabbitmq
+spec:
+  rabbitmq:
+    additionalPlugins:
+    - rabbitmq_prometheus
+    additionalConfig: |
+      vm_memory_high_watermark.absolute = 3Gi
+  image: docker.io/bitnamilegacy/rabbitmq:3.11.26-debian-11-r0
+  persistence:
+    storage: 3Gi
+  replicas: 1
+  resources:
+    limits:
+      cpu: "1"
+      memory: 3Gi
+    requests:
+      cpu: "1"
+      memory: 3Gi
+  service: {}
+  override:
+    statefulSet:
+      spec:
+        template:
+          spec:
+            containers: []
+            securityContext: {}
+  tls:
+    secretName: rabbitmq-certs
+    disableNonTLSListeners: true
+---
+# Source: rabbitmq-instance/templates/routes.yaml
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: amqps
+  namespace: rabbitmq
+spec:
+  host: amqps.rabbitmq.com
+  to:
+    kind: Service
+    name: rabbitmq
+  port:
+    targetPort: amqps
+  tls:
+    termination: passthrough
+---
+# Source: rabbitmq-instance/templates/routes.yaml
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: management
+  namespace: rabbitmq
+spec:
+  host: management.rabbitmq.com
+  to:
+    kind: Service
+    name: rabbitmq
+  port:
+    targetPort: management-tls
+  tls:
+    termination: passthrough
+---
+# Source: rabbitmq-instance/templates/prober-servicemonitor.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: rabbitmq-prober
+  namespace: rabbitmq
+  labels:
+    app: rabbitmq-prober
+spec:
+  selector:
+    matchLabels:
+      app: rabbitmq-prober
+  endpoints:
+  - port: metrics
+    interval: 10s
+    path: /metrics
+    relabelings:
+    - sourceLabels: []
+      targetLabel: instance
+      replacement: rabbitmq-prober-service.monitoring.svc.cluster.local:8080
