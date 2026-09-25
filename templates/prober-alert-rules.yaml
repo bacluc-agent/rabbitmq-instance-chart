@@ -13,9 +13,9 @@ spec:
           for: 2m
           labels:
             severity: warning
-            syn_team: schedar
+            syn_team: {{ .Values.prober.alerts.syn_team | quote }}
             syn: "true"
-            syn_component: rabbitmq-operator
+            syn_component: {{ .Chart.Name }}-{{ .Release.Name }}
           annotations:
             summary: RabbitMQ is down
             description: RabbitMQ in namespace {{ "{{ $labels.namespace }}" }} has been down for more than 1 minute
@@ -24,9 +24,9 @@ spec:
           for: 0m
           labels:
             severity: warning
-            syn_team: schedar
+            syn_team: {{ .Values.prober.alerts.syn_team | quote }}
             syn: "true"
-            syn_component: rabbitmq-operator
+            syn_component: {{ .Chart.Name }}-{{ .Release.Name }}
           annotations:
             summary: Multiple RabbitMQ probe failures
             description: RabbitMQ prober in namespace {{ "{{ $labels.namespace }}" }} has failed {{ "{{ $value }}" }} times in the last 5 minutes
