@@ -39,7 +39,8 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   data:
-    config.json: {{ toJson .Values.rabbitmq.custom_lb_service }}
+    config.json: |
+      {{ toPrettyJson .Values.rabbitmq.custom_lb_service | nindent 4 }}
 ---
 apiVersion: espejote.io/v1alpha1
 kind: ManagedResource
