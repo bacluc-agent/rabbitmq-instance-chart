@@ -14,7 +14,7 @@ spec:
       {{- with .Values.rabbitmq.additionalConfig }}
       {{ . | nindent 6 }}
       {{- end }}
-  image: {{ .Values.rabbitmq.image }}
+  image: {{ .Values.rabbitmq.image.registry }}/{{ .Values.rabbitmq.image.image }}:{{ .Values.rabbitmq.image.version | default .Chart.AppVersion }}-alpine
   persistence:
     storage: {{ .Values.rabbitmq.persistence.storage }}
   replicas: {{ .Values.rabbitmq.replicas }}
@@ -27,9 +27,14 @@ spec:
           spec:
             containers: []
             securityContext: {}
-            {{- with .Values.rabbitmq.affinity }}
-            affinity: {{ toYaml . | nindent 14 }}
-            {{- end }}
+            affinity:
+              podAntiAffinity:
+                requiredDuringSchedulingIgnoredDuringExecution:
+                  - labelSelector:
+                      matchLabels:
+                        app.kubernetes.io/component: rabbitmq
+                        app.kubernetes.io/name: {{ .Values.rabbitmq.name }}
+                    topologyKey: kubernetes.io/hostname
   {{- if .Values.rabbitmq.tls.enabled }}
   tls:
     secretName: {{ .Values.rabbitmq.tls.secretName }}

@@ -1,0 +1,17 @@
+{{- if .Values.rabbitmq.replicas | int | gt 1 }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  labels:
+    app.kubernetes.io/component: rabbitmq
+    app.kubernetes.io/name: {{ .Values.rabbitmq.name }}
+  name: {{ .Release.Name }}-rabbitmq
+  namespace: {{ .Release.Namespace }}
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: rabbitmq
+      app.kubernetes.io/name: {{ .Values.rabbitmq.name }}
+  unhealthyPodEvictionPolicy: IfHealthyBudget
+{{ end }}

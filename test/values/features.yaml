@@ -1,12 +1,18 @@
 rabbitmq:
   tls:
     enabled: true
+    dnsNames:
+      amqps: amqps.rabbitmq.com
+      management: management.rabbitmq.com
   rbac:
     enabled: true
     groups:
       - rabbitmq-admins
   ciliumNetworkPolicy:
     enabled: true
+  custom_lb_service:
+    enabled: true
+    loadBalancerClass: io.cilium/l2-announcer
 prober:
   enabled: true
   alerts:

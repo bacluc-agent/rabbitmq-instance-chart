@@ -1,10 +1,31 @@
 # chartsnap: snapshot_version=v3
 ---
+# Source: rabbitmq-instance/templates/espejote-lb-service.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: test-rabbitmq-lb-service-manager
+  namespace: rabbitmq
+---
+# Source: rabbitmq-instance/templates/espejote-lb-service.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: test-rabbitmq-lb-service-manager
+  namespace: rabbitmq
+rules:
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["*"]
+- apiGroups: ["espejote.io"]
+  resources: ["jsonnetlibraries"]
+  verbs: ["get", "list", "watch"]
+---
 # Source: rabbitmq-instance/templates/rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: read-access
+  name: test-read-access
   namespace: rabbitmq
 rules:
 - apiGroups: [""]
@@ -17,11 +38,26 @@ rules:
   resources: ["routes"]
   verbs: ["get", "list", "watch"]
 ---
+# Source: rabbitmq-instance/templates/espejote-lb-service.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: test-rabbitmq-lb-service-manager
+  namespace: rabbitmq
+roleRef:
+  kind: Role
+  name: rabbitmq-lb-service-manager
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- kind: ServiceAccount
+  name: rabbitmq-lb-service-manager
+  namespace: rabbitmq
+---
 # Source: rabbitmq-instance/templates/rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: read-access-binding
+  name: test-read-access-binding
   namespace: rabbitmq
 subjects:
 - kind: Group
@@ -29,7 +65,7 @@ subjects:
   apiGroup: rbac.authorization.k8s.io
 roleRef:
   kind: Role
-  name: read-access
+  name: test-read-access
   apiGroup: rbac.authorization.k8s.io
 ---
 # Source: rabbitmq-instance/templates/prober-service.yaml
@@ -76,7 +112,7 @@ spec:
     spec:
       containers:
       - name: prober
-        image: ghcr.io/bacluc-agent/rabbitmq-instance-chart/prober:latest
+        image: "ghcr.io/bacluc-agent/rabbitmq-instance-chart/prober:0.0.1"
         env:
         - name: RABBITMQ_HOST
           valueFrom:
@@ -143,6 +179,62 @@ spec:
         protocol: TCP
       - port: "5672"
         protocol: TCP
+---
+# Source: rabbitmq-instance/templates/espejote-lb-service.yaml
+apiVersion: espejote.io/v1alpha1
+kind: JsonnetLibrary
+metadata:
+  name: test-rabbitmq-lb-service
+  namespace: rabbitmq
+spec:
+  data:
+    config.json: |
+      {
+        "enabled": true,
+        "loadBalancerClass": "io.cilium/l2-announcer"
+      }
+---
+# Source: rabbitmq-instance/templates/espejote-lb-service.yaml
+apiVersion: espejote.io/v1alpha1
+kind: ManagedResource
+metadata:
+  name: test-rabbitmq-lb-service
+  namespace: rabbitmq
+  annotations:
+    syn.tools/description: |
+      This ManagedResource watches the Service created by the
+      rabbitmq-operator for the RabbitmqCluster resource that's created by
+      the Commodore component.
+
+      The ManagedResource creates a copy of the RabbitmqCluster's primary
+      service with `spec.type=LoadBalancer` and a user-configurable
+      `spec.loadBalancerClass`. The values of `metadata.annotations`,
+      `spec.ports` and `spec.selector` are copied from the
+      operator-managed Service and updated whenever the operator makes any
+      changes.
+spec:
+  applyOptions:
+    force: true
+  context:
+  - name: services
+    resource:
+      apiVersion: v1
+      kind: Service
+      name: rabbitmq
+      namespace: rabbitmq
+  triggers:
+  - name: service
+    watchContextResource:
+      name: services
+  - name: jsonnetlib
+    watchResource:
+      apiVersion: espejote.io/v1alpha1
+      kind: JsonnetLibrary
+      name: test-rabbitmq-lb-service
+      namespace: rabbitmq
+  serviceAccountRef:
+    name: test-rabbitmq-lb-service-manager
+  template: "local esp = import 'espejote.libsonnet';\nlocal config = import 'rabbitmq-lb-service/config.json';\n\nlocal svcs = esp.context().services;\nassert std.length(svcs) == 1 : 'Expected exactly 1 service in services context';\nlocal svc = svcs[0];\n\n{\n  apiVersion: 'v1',\n  kind: 'Service',\n  metadata: {\n    annotations: std.get(svc.metadata, 'annotations', {}),\n    name: '%s-lb' % svc.metadata.name,\n    namespace: svc.metadata.namespace,\n  },\n  spec: {\n    type: 'LoadBalancer',\n    loadBalancerClass: '%(loadBalancerClass)s' % config,\n    ports: svc.spec.ports,\n    selector: svc.spec.selector,\n  },\n}\n"
 ---
 # Source: rabbitmq-instance/templates/prober-alert-rules.yaml
 apiVersion: monitoring.coreos.com/v1
@@ -211,7 +303,7 @@ spec:
     - rabbitmq_prometheus
     additionalConfig: |
       vm_memory_high_watermark.absolute = 3Gi
-  image: docker.io/bitnamilegacy/rabbitmq:3.11.26-debian-11-r0
+  image: docker.io/library/rabbitmq:4.3.6-alpine
   persistence:
     storage: 3Gi
   replicas: 1
@@ -230,6 +322,14 @@ spec:
           spec:
             containers: []
             securityContext: {}
+            affinity:
+              podAntiAffinity:
+                requiredDuringSchedulingIgnoredDuringExecution:
+                - labelSelector:
+                    matchLabels:
+                      app.kubernetes.io/component: rabbitmq
+                      app.kubernetes.io/name: rabbitmq
+                  topologyKey: kubernetes.io/hostname
   tls:
     secretName: rabbitmq-certs
     disableNonTLSListeners: true
@@ -238,7 +338,7 @@ spec:
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
-  name: amqps
+  name: test-amqps
   namespace: rabbitmq
 spec:
   host: amqps.rabbitmq.com
@@ -254,7 +354,7 @@ spec:
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
-  name: management
+  name: test-management
   namespace: rabbitmq
 spec:
   host: management.rabbitmq.com
@@ -285,4 +385,4 @@ spec:
     relabelings:
     - sourceLabels: []
       targetLabel: instance
-      replacement: rabbitmq-prober-service.monitoring.svc.cluster.local:8080
+      replacement: 'rabbitmq-prober-service.monitoring.svc.cluster.local:8080'
