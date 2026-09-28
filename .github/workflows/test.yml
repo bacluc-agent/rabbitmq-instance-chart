@@ -31,9 +31,9 @@ jobs:
 
       - name: Install CRD chart
         run: |
-          scripts/helm-docker.sh install crd oci://ghcr.io/bacluc-agent/rabbitmq-crd-chart/rabbitmq-crd --version "$RABBITMQ_CRD_CHART_VERSION" --wait --timeout 5m --create-namespace --namespace rabbitmq-system
+          scripts/helm-docker.sh install crd oci://ghcr.io/vshn/rabbitmq-crd-chart/rabbitmq-crd --version "$RABBITMQ_CRD_CHART_VERSION" --wait --timeout 5m --create-namespace --namespace rabbitmq-system
         env:
-          # renovate: datasource=docker depName=ghcr.io/bacluc-agent/rabbitmq-crd-chart/rabbitmq-crd
+          # renovate: datasource=docker depName=ghcr.io/vshn/rabbitmq-crd-chart/rabbitmq-crd
           RABBITMQ_CRD_CHART_VERSION: 0.0.1
 
       - name: Install chart
