@@ -1,0 +1,61 @@
+name: Smoke test
+on:
+  pull_request:
+  push:
+  workflow_dispatch: {}
+
+env:
+  HELM_IMAGE: ghcr.io/appuio/helm-v4
+  # renovate: datasource=docker depName=ghcr.io/appuio/helm-v4
+  HELM_VERSION: 4.1.0
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Start Minikube
+        uses: medyagh/setup-minikube@e9e035a86bbc3caea26a450bd4dbf9d0c453682e # v0.0.21
+
+      - name: setup helm
+        run: |
+          mkdir -p ~/.config/helm/registry/
+          echo "{}" > ~/.config/helm/registry/config.json
+
+      - name: Lint
+        run: scripts/helm-docker.sh lint .
+
+      - name: Template default
+        run: scripts/helm-docker.sh template test .
+
+      - name: Install CRD chart
+        run: |
+          scripts/helm-docker.sh install crd oci://ghcr.io/bacluc-agent/rabbitmq-crd-chart/rabbitmq-crd --version "$RABBITMQ_CRD_CHART_VERSION" --wait --timeout 5m --create-namespace --namespace rabbitmq-system
+        env:
+          # renovate: datasource=docker depName=ghcr.io/bacluc-agent/rabbitmq-crd-chart/rabbitmq-crd
+          RABBITMQ_CRD_CHART_VERSION: 0.0.1
+
+      - name: Install chart
+        run: scripts/helm-docker.sh install test . --timeout 10m --create-namespace --namespace rabbitmq --values test/values/smoke-test.yaml
+
+      - name: Assert RabbitmqCluster and prober
+        run: |
+          kubectl get rabbitmqcluster rabbitmq -n rabbitmq
+          kubectl get deployment rabbitmq-prober -n rabbitmq
+
+      - name: Uninstall chart
+        run: scripts/helm-docker.sh uninstall test -n rabbitmq --wait
+
+  chartsnap:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Compare Helm value snapshots (refresh with ./scripts/chartsnap.sh --update)
+        run: |
+          ./scripts/chartsnap.sh
+          test -z "$(git status --porcelain -- test)"

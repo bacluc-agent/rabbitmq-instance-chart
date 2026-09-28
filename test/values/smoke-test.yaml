@@ -1,0 +1,9 @@
+rabbitmq:
+  tls:
+    dnsNames:
+      amqps: amqps.rabbitmq.com
+      management: management.rabbitmq.com
+prober:
+  enabled: true
+monitoring:
+  enabled: false

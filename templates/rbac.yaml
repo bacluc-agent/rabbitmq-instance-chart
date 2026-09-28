@@ -1,0 +1,44 @@
+{{- if and .Values.rabbitmq.enabled .Values.rabbitmq.rbac.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ .Release.Name }}-read-access
+  namespace: {{ .Release.Namespace }}
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "secrets", "configmaps", "services"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["route.openshift.io"]
+    resources: ["routes"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Release.Name }}-read-access-binding
+  namespace: {{ .Release.Namespace }}
+subjects:
+  {{- $groups := list }}
+  {{- range .Values.rabbitmq.rbac.groups }}
+  {{- $groups = append $groups . }}
+  {{- end }}
+  {{- if .Values.rabbitmq.rbac.group }}
+  {{- $groups = append $groups .Values.rabbitmq.rbac.group }}
+  {{- end }}
+  {{- $seen := dict }}
+  {{- range $groups }}
+  {{- if not (hasKey $seen .) }}
+  {{- $_ := set $seen . true }}
+  - kind: Group
+    name: {{ . }}
+    apiGroup: rbac.authorization.k8s.io
+  {{- end }}
+  {{- end }}
+roleRef:
+  kind: Role
+  name: {{ .Release.Name}}-read-access
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

@@ -1,0 +1,7 @@
+apiVersion: v2
+name: rabbitmq-instance
+description: Helm chart for a RabbitMQ instance (RabbitmqCluster CR, prober, routes, RBAC, espejote LB service)
+type: application
+version: 0.0.1
+# renovate: datasource=docker depName=rabbitmq
+appVersion: "4.3.6"

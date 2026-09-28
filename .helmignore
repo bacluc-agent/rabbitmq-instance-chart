@@ -1,0 +1,6 @@
+.git/
+.github/
+*.tgz
+docker/
+monitoring/
+test/
