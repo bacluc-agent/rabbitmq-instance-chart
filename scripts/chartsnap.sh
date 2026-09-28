@@ -3,7 +3,7 @@ set -euo pipefail
 
 readonly HELM_IMAGE=${HELM_IMAGE:-ghcr.io/appuio/helm-v4}
 # renovate: datasource=docker depName=ghcr.io/appuio/helm-v4
-DEFAULT_HELM_VERSION=4.1.0
+DEFAULT_HELM_VERSION=4.3.0
 readonly HELM_VERSION=${HELM_VERSION:-$DEFAULT_HELM_VERSION}
 readonly CHARTSNAP_URL='https://github.com/jlandowner/helm-chartsnap'
 readonly CHARTSNAP_VERSION='v0.6.0'

@@ -7,7 +7,7 @@ on:
 env:
   HELM_IMAGE: ghcr.io/appuio/helm-v4
   # renovate: datasource=docker depName=ghcr.io/appuio/helm-v4
-  HELM_VERSION: 4.1.0
+  HELM_VERSION: 4.3.0
 
 jobs:
   smoke:
