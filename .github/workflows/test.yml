@@ -34,7 +34,7 @@ jobs:
           scripts/helm-docker.sh install crd oci://ghcr.io/bacluc-agent/rabbitmq-crd-chart/rabbitmq-crd --version "$RABBITMQ_CRD_CHART_VERSION" --wait --timeout 5m --create-namespace --namespace rabbitmq-system
         env:
           # renovate: datasource=docker depName=ghcr.io/bacluc-agent/rabbitmq-crd-chart/rabbitmq-crd
-          RABBITMQ_CRD_CHART_VERSION: 0.0.1
+          RABBITMQ_CRD_CHART_VERSION: 0.0.3
 
       - name: Install chart
         run: scripts/helm-docker.sh install test . --timeout 10m --create-namespace --namespace rabbitmq --values test/values/smoke-test.yaml
