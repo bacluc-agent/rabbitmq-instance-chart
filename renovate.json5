@@ -37,7 +37,8 @@
     {
       "matchFileNames": [
         "/\\.github/.*/",
-        "/\\.github/.*/",
+        "/monitoring/.*/",
+        "/scripts/.*/",
       ],
       "labels": [
         "renovate",
