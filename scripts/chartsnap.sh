@@ -26,6 +26,31 @@ case "$#" in
   *) usage ;;
 esac
 
+chartsnap_args=(
+  --chart .
+  --values test/values
+  --release-name test
+  --namespace rabbitmq
+  --snapshot-version v3
+  --parallelism 1
+  --fail-helm-error
+  "${update[@]}"
+)
+
+if version="$(command -v helm >/dev/null 2>&1 && helm version --template '{{.Version}}' 2>/dev/null)" \
+  && [[ "$version" == v4.* ]] \
+  && chartsnap_version="$(helm chartsnap --version 2>/dev/null)"; then
+  printf 'using local %s with %s\n' "$version" "$chartsnap_version" >&2
+  exec helm chartsnap "${chartsnap_args[@]}"
+fi
+
+if ! command -v docker >/dev/null 2>&1; then
+  printf 'chartsnap: neither a local Helm 4 with the chartsnap plugin nor docker is available.\n' >&2
+  printf 'Install the plugin into your own Helm 4, or run this script where docker works:\n' >&2
+  printf '  helm plugin install %s --version %s --verify=false\n' "$CHARTSNAP_URL" "$CHARTSNAP_VERSION" >&2
+  exit 1
+fi
+
 exec docker run --rm \
   --user "$(id -u):$(id -g)" \
   --volume "$PWD:/app" \
@@ -43,13 +68,5 @@ exec docker run --rm \
   "$HELM_IMAGE:$HELM_VERSION" -eu -c '
     mkdir -p "$HOME" "$HELM_CONFIG_HOME" "$HELM_CACHE_HOME" "$HELM_DATA_HOME" "$HELM_PLUGINS"
     helm plugin install "$CHARTSNAP_URL" --version "$CHARTSNAP_VERSION" --verify=false
-    exec helm chartsnap \
-      --chart . \
-      --values test/values \
-      --release-name test \
-      --namespace rabbitmq \
-      --snapshot-version v3 \
-      --parallelism 1 \
-      --fail-helm-error \
-      "$@"
-  ' chartsnap "${update[@]}"
+    exec helm chartsnap "$@"
+  ' chartsnap "${chartsnap_args[@]}"
