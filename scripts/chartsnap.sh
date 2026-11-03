@@ -6,6 +6,7 @@ readonly HELM_IMAGE=${HELM_IMAGE:-ghcr.io/appuio/helm-v4}
 DEFAULT_HELM_VERSION=4.3.0
 readonly HELM_VERSION=${HELM_VERSION:-$DEFAULT_HELM_VERSION}
 readonly CHARTSNAP_URL='https://github.com/jlandowner/helm-chartsnap'
+# renovate: datasource=github-releases depName=jlandowner/helm-chartsnap
 readonly CHARTSNAP_VERSION='v0.6.0'
 
 usage() {
