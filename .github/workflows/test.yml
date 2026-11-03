@@ -55,7 +55,21 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Install Helm 4
+        run: |
+          curl -fsSL "https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz" -o /tmp/helm.tar.gz
+          tar -xzOf /tmp/helm.tar.gz linux-amd64/helm > /tmp/helm-bin
+          install -Dm 755 /tmp/helm-bin "$HOME/.local/bin/helm"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install chartsnap plugin
+        run: |
+          helm version
+          chartsnap_version="$(sed -n "s/^readonly CHARTSNAP_VERSION='\(v[^']*\)'.*/\1/p" scripts/chartsnap.sh)"
+          helm plugin install https://github.com/jlandowner/helm-chartsnap --verify=false --version "$chartsnap_version"
+
       - name: Compare Helm value snapshots (refresh with ./scripts/chartsnap.sh --update)
         run: |
-          ./scripts/chartsnap.sh
+          ./scripts/chartsnap.sh 2>&1 | tee /tmp/chartsnap.log
+          grep 'using local v4\.' /tmp/chartsnap.log
           test -z "$(git status --porcelain -- test)"
