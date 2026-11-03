@@ -69,6 +69,7 @@ jobs:
           helm plugin install https://github.com/jlandowner/helm-chartsnap --verify=false --version "$chartsnap_version"
 
       - name: Compare Helm value snapshots (refresh with ./scripts/chartsnap.sh --update)
+        shell: bash
         run: |
           ./scripts/chartsnap.sh 2>&1 | tee /tmp/chartsnap.log
           grep 'using local v4\.' /tmp/chartsnap.log
